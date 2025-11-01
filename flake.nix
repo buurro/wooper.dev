@@ -82,5 +82,12 @@
           };
         };
       };
+      devShells.default = pkgs.mkShell {
+        name = "wooper";
+        packages = [
+          pkgs.uv
+          pkgs.postgresql_17
+        ];
+      };
     });
 }

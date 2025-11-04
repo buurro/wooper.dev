@@ -1,89 +1,17 @@
-name: Create and publish image to ghcr
+name: Publish Container Image
 
 on:
   push:
-    branches: ['main']
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+    branches: [main]
+  pull_request:
 
 jobs:
-  build-and-push-image:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            arch: amd64
-          - os: ubuntu-24.04-arm
-            arch: arm64
-    outputs:
-      image-tag: ${{ steps.image-tag.outputs.tag }}
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: buurro/publish-container-image/.github/workflows/publish-container-image.yml@main
     permissions:
       contents: read
       packages: write
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-      - name: Install nix
-        uses: DeterminateSystems/nix-installer-action@v20
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3.6.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build container image
-        run: nix build -L .#containerImage
-      - name: Load image
-        run: |
-          ./result | docker load
-      - name: Get image tag
-        id: image-tag
-        run: |
-          export IMAGE_TAG="`nix eval --raw .#containerImage.imageTag`"
-          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-      - name: Push architecture-specific image
-        run: |
-          export IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
-          export ARCH_TAG="${IMAGE_TAG}-${{ matrix.arch }}"
-          
-          docker image tag "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG" "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$ARCH_TAG"
-          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$ARCH_TAG"
-
-  create-manifest:
-    needs: build-and-push-image
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3.6.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create and push manifest
-        run: |
-          export IMAGE_TAG="${{ needs.build-and-push-image.outputs.image-tag }}"
-          
-          # Create manifest for version tag
-          docker manifest create "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG" \
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG-amd64" \
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG-arm64"
-          
-          docker manifest push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG"
-          
-          # Create manifest for latest tag
-          docker manifest create "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" \
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG-amd64" \
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG-arm64"
-          
-          docker manifest push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+    with:
+      nix-flake-attr: '.#containerImage'
+    secrets: inherit

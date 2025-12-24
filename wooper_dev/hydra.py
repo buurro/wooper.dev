@@ -39,8 +39,11 @@ def _parse_build_row(row):
 
 
 def _get_next_page_url(soup: BeautifulSoup) -> str | None:
-    next_link = soup.find("a", string="Next ›", href=True)
-    return next_link["href"] if next_link else None
+    for link in soup.find_all("a", href=True):
+        if link.string == "Next ›":
+            href = link.get("href")
+            return str(href) if href else None
+    return None
 
 
 def _get_succeeded_builds(soup: BeautifulSoup) -> list[Build]:
@@ -53,7 +56,8 @@ def _get_succeeded_builds(soup: BeautifulSoup) -> list[Build]:
 
 def _parse_page(url: str) -> tuple[list[Build], str | None]:
     print(f"Fetching: {url}")
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
     soup = BeautifulSoup(response.content, "html.parser")
     builds = _get_succeeded_builds(soup)
     next_page_url = _get_next_page_url(soup)

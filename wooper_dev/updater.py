@@ -72,6 +72,8 @@ def main() -> None:
 
         command = [
             "nix",
+            "--extra-experimental-features",
+            "nix-command flakes",
             "flake",
             "metadata",
             f"github:nixos/nixpkgs?ref={ref}",  # ref here is the short commit hash
@@ -94,7 +96,15 @@ def main() -> None:
             (rev, hash, date),
         )
 
-        command = ["nix", "search", f"github:nixos/nixpkgs?rev={rev}", "^", "--json"]
+        command = [
+            "nix",
+            "--extra-experimental-features",
+            "nix-command flakes",
+            "search",
+            f"github:nixos/nixpkgs?rev={rev}",
+            "^",
+            "--json",
+        ]
         result = subprocess.run(command, capture_output=True, text=True, check=True)
 
         # Parse the JSON output

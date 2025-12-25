@@ -22,21 +22,21 @@
     };
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , uv2nix
-    , pyproject-nix
-    , pyproject-build-systems
-    , ...
-    }: flake-utils.lib.eachDefaultSystem (system:
-    let
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    uv2nix,
+    pyproject-nix,
+    pyproject-build-systems,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
       inherit (nixpkgs) lib;
 
       pkgs = nixpkgs.legacyPackages.${system};
 
-      workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
+      workspace = uv2nix.lib.workspace.loadWorkspace {workspaceRoot = ./.;};
 
       overlay = workspace.mkPyprojectOverlay {
         sourcePreference = "wheel";
@@ -54,34 +54,36 @@
       );
 
       venv = pythonSet.mkVirtualEnv "wooper-dev-env" workspace.deps.default;
-    in
-    {
-      packages = {
-        default = pkgs.writeShellApplication {
-          name = "wooper-dev";
+    in {
+      packages =
+        {
+          default = pkgs.writeShellApplication {
+            name = "wooper-dev";
 
-          runtimeInputs = [ venv ];
+            runtimeInputs = [venv];
 
-          text = ''
-            uvicorn wooper_dev.main:app --host=0.0.0.0
-          '';
-        };
-      } // lib.optionalAttrs pkgs.stdenv.isLinux {
-        containerImage = pkgs.dockerTools.streamLayeredImage {
-          name = "ghcr.io/buurro/wooper.dev";
-          tag = pythonSet.wooper-dev.version;
-          contents = [
-            venv
-            pkgs.busybox
-          ];
-          config = {
-            Cmd = [ "uvicorn" "wooper_dev.main:app" "--host=0.0.0.0" ];
-            ExposedPorts = {
-              "8000/tcp" = { };
+            text = ''
+              uvicorn wooper_dev.main:app --host=0.0.0.0
+            '';
+          };
+        }
+        // lib.optionalAttrs pkgs.stdenv.isLinux {
+          containerImage = pkgs.dockerTools.streamLayeredImage {
+            name = "ghcr.io/buurro/wooper.dev";
+            tag = pythonSet.wooper-dev.version;
+            contents = [
+              venv
+              pkgs.busybox
+              pkgs.nix
+            ];
+            config = {
+              Cmd = ["uvicorn" "wooper_dev.main:app" "--host=0.0.0.0"];
+              ExposedPorts = {
+                "8000/tcp" = {};
+              };
             };
           };
         };
-      };
       devShells.default = pkgs.mkShell {
         name = "wooper";
         packages = [

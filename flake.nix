@@ -75,6 +75,7 @@
               venv
               pkgs.busybox
               pkgs.nix
+              pkgs.dockerTools.caCertificates
             ];
             config = {
               Cmd = ["uvicorn" "wooper_dev.main:app" "--host=0.0.0.0"];

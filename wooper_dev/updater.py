@@ -84,7 +84,7 @@ def main() -> None:
         metadata = json.loads(result.stdout)
 
         rev = metadata["locked"]["rev"]
-        hash = metadata["locked"]["narHash"]
+        nar_hash = metadata["locked"]["narHash"]
         date = metadata["locked"]["lastModified"]
         store_path = metadata["path"]
 
@@ -94,7 +94,7 @@ def main() -> None:
             VALUES (%s, %s, %s)
             ON CONFLICT (rev) DO NOTHING
             """,
-            (rev, hash, date),
+            (rev, nar_hash, date),
         )
 
         command = [
@@ -127,7 +127,14 @@ def main() -> None:
 
         # Clean up the fetched nixpkgs store path
         subprocess.run(
-            ["nix", "--extra-experimental-features", "nix-command", "store", "delete", store_path],
+            [
+                "nix",
+                "--extra-experimental-features",
+                "nix-command",
+                "store",
+                "delete",
+                store_path,
+            ],
             capture_output=True,
             check=False,
         )

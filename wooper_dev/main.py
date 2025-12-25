@@ -6,8 +6,9 @@ from psycopg.errors import ConnectionFailure
 from .actual_logic import (
     NixpkgsRev,
     get_flake_nix,
+    get_flake_tarball,
     get_package,
-    get_tarball,
+    get_revs_per_day,
     packages_from_string,
 )
 
@@ -39,34 +40,17 @@ async def flake(packages: str):
     except ConnectionFailure:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    flake_nix = await get_flake_nix(packages_list)
-
-    return PlainTextResponse(flake_nix)
+    return PlainTextResponse(get_flake_nix(packages_list))
 
 
-@app.get("/{packages}")
-async def tarball(packages: str) -> StreamingResponse:
-    parts = packages.split(";")
-    if len(parts) > MAX_PACKAGES:
-        raise HTTPException(
-            status_code=400, detail=f"Too many packages (max {MAX_PACKAGES})"
-        )
-
+@app.get("/stats/revs-per-day")
+async def stats_revs_per_day():
     try:
-        packages_list = await packages_from_string(packages)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        stats = await get_revs_per_day()
     except ConnectionFailure:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    tar_stream = await get_tarball(packages_list)
-
-    filename = "flake.tar.gz"
-    return StreamingResponse(
-        tar_stream,
-        media_type="application/gzip",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
+    return stats
 
 
 @app.get("/nixpkgs/{requirement}")
@@ -102,3 +86,25 @@ async def rev(requirement: str) -> NixpkgsRev:
         )
 
     return package.nixpkgs_rev
+
+
+@app.get("/{packages}")
+async def tarball(packages: str) -> StreamingResponse:
+    parts = packages.split(";")
+    if len(parts) > MAX_PACKAGES:
+        raise HTTPException(
+            status_code=400, detail=f"Too many packages (max {MAX_PACKAGES})"
+        )
+
+    try:
+        packages_list = await packages_from_string(packages)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ConnectionFailure:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    return StreamingResponse(
+        get_flake_tarball(packages_list),
+        media_type="application/gzip",
+        headers={"Content-Disposition": "attachment; filename=flake.tar.gz"},
+    )

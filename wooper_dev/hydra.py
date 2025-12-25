@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Iterator
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 @dataclass
@@ -15,7 +15,7 @@ class Build:
     system: str
 
 
-def _is_succeeded(row):
+def _is_succeeded(row: Tag) -> bool:
     """Check if the row represents a succeeded build."""
     status_img = row.find("img", class_="build-status")
     return status_img and "Succeeded" in status_img.get("title", "")

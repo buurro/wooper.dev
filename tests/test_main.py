@@ -37,8 +37,9 @@ class TestFlakeEndpoint:
             response = client.get("/flake/python3")
 
         assert response.status_code == 200
+        assert "quickshell" in response.text
+        assert "mkDevshell" in response.text
         assert "python3" in response.text
-        assert "nixpkgs-0" in response.text
 
     def test_rejects_too_many_packages(self):
         packages = ";".join([f"pkg{i}" for i in range(MAX_PACKAGES + 1)])
@@ -73,20 +74,12 @@ class TestFlakeEndpoint:
 
 class TestTarballEndpoint:
     def test_returns_tarball(self, mock_package):
-        with (
-            patch(
-                "wooper_dev.main.packages_from_string",
-                new_callable=AsyncMock,
-                return_value=[mock_package],
-            ),
-            patch(
-                "wooper_dev.main.get_tarball",
-                new_callable=AsyncMock,
-            ) as mock_tarball,
-        ):
-            import io
+        import io
 
-            mock_tarball.return_value = io.BytesIO(b"fake tarball content")
+        with (
+            patch("wooper_dev.main.packages_from_string", new_callable=AsyncMock, return_value=[mock_package]),
+            patch("wooper_dev.main.get_flake_tarball", return_value=io.BytesIO(b"fake tarball")),
+        ):
             response = client.get("/python3")
 
         assert response.status_code == 200
@@ -98,6 +91,16 @@ class TestTarballEndpoint:
         response = client.get(f"/{packages}")
 
         assert response.status_code == 400
+
+    def test_returns_404_for_missing_package(self):
+        with patch(
+            "wooper_dev.main.packages_from_string",
+            new_callable=AsyncMock,
+            side_effect=ValueError("Version not found for package nonexistent"),
+        ):
+            response = client.get("/nonexistent")
+
+        assert response.status_code == 404
 
 
 class TestNixpkgsEndpoint:
@@ -153,6 +156,37 @@ class TestRevEndpoint:
             response = client.get("/rev/nonexistent")
 
         assert response.status_code == 404
+
+
+class TestStatsEndpoint:
+    def test_returns_revs_per_day(self):
+        with patch(
+            "wooper_dev.main.get_revs_per_day",
+            new_callable=AsyncMock,
+            return_value=[
+                {"date": "2024-01-15", "count": 5},
+                {"date": "2024-01-14", "count": 3},
+            ],
+        ):
+            response = client.get("/stats/revs-per-day")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert data[0]["date"] == "2024-01-15"
+        assert data[0]["count"] == 5
+
+    def test_returns_503_on_db_failure(self):
+        from psycopg.errors import ConnectionFailure
+
+        with patch(
+            "wooper_dev.main.get_revs_per_day",
+            new_callable=AsyncMock,
+            side_effect=ConnectionFailure("Database unavailable"),
+        ):
+            response = client.get("/stats/revs-per-day")
+
+        assert response.status_code == 503
 
 
 class TestInputValidation:

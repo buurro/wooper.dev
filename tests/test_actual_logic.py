@@ -166,94 +166,71 @@ class TestSelectOptimalPackages:
 
 
 class TestGetFlakeNix:
-    @pytest.mark.asyncio
-    async def test_generates_valid_flake(self):
+    def test_generates_valid_flake(self):
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(
-                name="python3",
-                version=Version("3.11.0"),
-                nixpkgs_rev=rev,
-                _input_name="nixpkgs-0",
-            ),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
         ]
 
-        flake_nix = await get_flake_nix(packages)
+        flake_nix = get_flake_nix(packages)
 
+        assert "quickshell" in flake_nix
+        assert "mkDevshell" in flake_nix
         assert "nixpkgs-0" in flake_nix
         assert "abc123def456" in flake_nix
         assert "python3" in flake_nix
 
-    @pytest.mark.asyncio
-    async def test_deduplicates_inputs(self):
+    def test_deduplicates_inputs(self):
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(
-                name="python3",
-                version=Version("3.11.0"),
-                nixpkgs_rev=rev,
-                _input_name="nixpkgs-0",
-            ),
-            Package(
-                name="nodejs",
-                version=Version("20.0.0"),
-                nixpkgs_rev=rev,
-                _input_name="nixpkgs-0",
-            ),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
         ]
 
-        flake_nix = await get_flake_nix(packages)
+        flake_nix = get_flake_nix(packages)
 
-        # Input should appear only once
         assert flake_nix.count('"nixpkgs-0".url') == 1
-        # But both packages should be in outputs
         assert "python3" in flake_nix
         assert "nodejs" in flake_nix
 
-
-class TestGetFlakeLock:
-    @pytest.mark.asyncio
-    async def test_generates_valid_lock(self):
-        rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
+    def test_groups_packages_by_input(self):
+        rev1 = NixpkgsRev(rev="abc123", hash="sha256-xxx", date=1000)
+        rev2 = NixpkgsRev(rev="def456", hash="sha256-yyy", date=2000)
         packages = [
-            Package(
-                name="python3",
-                version=Version("3.11.0"),
-                nixpkgs_rev=rev,
-                _input_name="nixpkgs-0",
-            ),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev1, _input_name="nixpkgs-0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev2, _input_name="nixpkgs-1"),
         ]
 
-        lock = await get_flake_lock(packages)
+        flake_nix = get_flake_nix(packages)
 
+        assert "nixpkgs-0" in flake_nix
+        assert "nixpkgs-1" in flake_nix
+
+
+class TestGetFlakeLock:
+    def test_generates_valid_lock(self):
         import json
 
-        lock_data = json.loads(lock)
+        rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
+        packages = [
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+        ]
+
+        lock_data = json.loads(get_flake_lock(packages))
+
+        assert "quickshell" in lock_data["nodes"]
         assert "nixpkgs-0" in lock_data["nodes"]
         assert lock_data["nodes"]["nixpkgs-0"]["locked"]["rev"] == "abc123def456"
 
-    @pytest.mark.asyncio
-    async def test_deduplicates_inputs(self):
-        rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
-        packages = [
-            Package(
-                name="python3",
-                version=Version("3.11.0"),
-                nixpkgs_rev=rev,
-                _input_name="nixpkgs-0",
-            ),
-            Package(
-                name="nodejs",
-                version=Version("20.0.0"),
-                nixpkgs_rev=rev,
-                _input_name="nixpkgs-0",
-            ),
-        ]
-
-        lock = await get_flake_lock(packages)
-
+    def test_deduplicates_inputs(self):
         import json
 
-        lock_data = json.loads(lock)
-        # Should only have root, nixpkgs, and nixpkgs-0 (not duplicated)
-        assert len(lock_data["nodes"]) == 3
+        rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
+        packages = [
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+        ]
+
+        lock_data = json.loads(get_flake_lock(packages))
+
+        assert len(lock_data["nodes"]) == 3  # root, quickshell, nixpkgs-0

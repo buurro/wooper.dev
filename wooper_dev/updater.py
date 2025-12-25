@@ -86,6 +86,7 @@ def main() -> None:
         rev = metadata["locked"]["rev"]
         hash = metadata["locked"]["narHash"]
         date = metadata["locked"]["lastModified"]
+        store_path = metadata["path"]
 
         cursor.execute(
             """
@@ -123,6 +124,13 @@ def main() -> None:
                 (rev, package_name, version),
             )
         conn.commit()
+
+        # Clean up the fetched nixpkgs store path
+        subprocess.run(
+            ["nix", "--extra-experimental-features", "nix-command", "store", "delete", store_path],
+            capture_output=True,
+            check=False,
+        )
 
     cursor.close()
     conn.close()

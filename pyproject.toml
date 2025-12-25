@@ -22,3 +22,6 @@ dev = [
     "ruff>=0.14.10",
     "ty>=0.0.7",
 ]
+
+[tool.setuptools.package-data]
+wooper_dev = ["quickshell.lock.json"]

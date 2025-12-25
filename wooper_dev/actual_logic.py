@@ -221,7 +221,7 @@ def get_flake_nix(packages: Iterable[Package]) -> str:
     first_input = next(iter(seen_inputs.keys()))
 
     inputs = "\n".join(
-        f'        "{name}".url = "github:nixos/nixpkgs?rev={pkg.nixpkgs_rev.rev}";'
+        f'    "{name}".url = "github:nixos/nixpkgs?rev={pkg.nixpkgs_rev.rev}";'
         for name, pkg in seen_inputs.items()
     )
 
@@ -230,35 +230,46 @@ def get_flake_nix(packages: Iterable[Package]) -> str:
         packages_by_input.setdefault(pkg.input_name, []).append(pkg.name)
 
     packages_for = "\n".join(
-        f'                    (with inputs."{name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}; [ {" ".join(names)} ])'
+        f'            (with inputs."{name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}; [{" ".join(names)}])'
         for name, names in packages_by_input.items()
     )
 
-    return dedent(f"""
+    individual_pkgs = "\n".join(
+        f'{pkg.name} = inputs."{pkg.input_name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}.{pkg.name};'
+        for pkg in packages
+    ).replace("\n", "\n                ")
+
+    return dedent(f"""\
         {{
-            inputs = {{
-                quickshell.url = "github:buurro/quickshell";
+          inputs = {{
+            quickshell.url = "github:buurro/quickshell";
         {inputs}
-            }};
-            outputs = {{ self, quickshell, ... }} @ inputs:
-                let
-                    inherit (quickshell.lib) mkDevshell toPackages forAllSystems;
-                    shells = toPackages {{
-                        dev = mkDevshell {{
-                            nixpkgs = inputs."{first_input}";
-                            packagesFor = pkgs: builtins.concatLists [
+          }};
+          outputs = {{
+            self,
+            quickshell,
+            ...
+          }} @ inputs: let
+            inherit (quickshell.lib) mkDevshell toPackages forAllSystems;
+            shells = toPackages {{
+              dev = mkDevshell {{
+                nixpkgs = inputs."{first_input}";
+                packagesFor = pkgs:
+                  builtins.concatLists [
         {packages_for}
-                            ];
-                        }};
-                    }};
-                in
-                {{
-                    packages = forAllSystems inputs."{first_input}" (pkgs: shells.${{pkgs.stdenv.hostPlatform.system}} // {{
-                        default = shells.${{pkgs.stdenv.hostPlatform.system}}.dev;
-                    }});
+                  ];
+              }};
             }};
+          in {{
+            packages = forAllSystems inputs."{first_input}" (pkgs:
+              shells.${{pkgs.stdenv.hostPlatform.system}}
+              // {{
+                default = shells.${{pkgs.stdenv.hostPlatform.system}}.dev;
+                {individual_pkgs}
+              }});
+          }};
         }}
-    """)
+        """)
 
 
 def get_flake_lock(packages: Iterable[Package]) -> str:

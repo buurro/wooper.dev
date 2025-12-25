@@ -24,6 +24,7 @@ def main() -> None:
     )
     metadata = json.loads(result.stdout)
     locked = metadata["locked"]
+    locked.pop("__final", None)  # nix internal field, breaks flake.lock
 
     print(f"  rev: {locked['rev']}")
     print(f"  narHash: {locked['narHash']}")

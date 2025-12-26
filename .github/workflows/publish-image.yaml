@@ -14,5 +14,5 @@ jobs:
       packages: write
     with:
       nix-flake-attr: ".#containerImage"
-      enable-cache: true
+      enable-cache: false
     secrets: inherit

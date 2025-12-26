@@ -13,5 +13,6 @@ jobs:
       contents: read
       packages: write
     with:
-      nix-flake-attr: '.#containerImage'
+      nix-flake-attr: ".#containerImage"
+      enable-cache: true
     secrets: inherit

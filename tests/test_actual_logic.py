@@ -52,7 +52,7 @@ class TestPackage:
             name="python3",
             version=Version("3.11.0"),
             nixpkgs_rev=rev,
-            _input_name="n0",
+            input_name_override="n0",
         )
 
         assert pkg.input_name == "n0"
@@ -183,7 +183,7 @@ class TestGetFlakeNix:
     def test_generates_valid_flake(self):
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, input_name_override="n0"),
         ]
 
         flake_nix = get_flake_nix(packages)
@@ -197,8 +197,8 @@ class TestGetFlakeNix:
     def test_deduplicates_inputs(self):
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
-            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="n0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, input_name_override="n0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, input_name_override="n0"),
         ]
 
         flake_nix = get_flake_nix(packages)
@@ -211,8 +211,8 @@ class TestGetFlakeNix:
         rev1 = NixpkgsRev(rev="abc123", hash="sha256-xxx", date=1000)
         rev2 = NixpkgsRev(rev="def456", hash="sha256-yyy", date=2000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev1, _input_name="n0"),
-            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev2, _input_name="n1"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev1, input_name_override="n0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev2, input_name_override="n1"),
         ]
 
         flake_nix = get_flake_nix(packages)
@@ -227,7 +227,7 @@ class TestGetFlakeLock:
 
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, input_name_override="n0"),
         ]
 
         lock_data = json.loads(get_flake_lock(packages))
@@ -241,8 +241,8 @@ class TestGetFlakeLock:
 
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
-            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="n0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, input_name_override="n0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, input_name_override="n0"),
         ]
 
         lock_data = json.loads(get_flake_lock(packages))

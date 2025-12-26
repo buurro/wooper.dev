@@ -3,7 +3,6 @@ import json
 import os
 import tarfile
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -12,6 +11,7 @@ from packaging.requirements import Requirement
 from packaging.version import Version
 from psycopg import sql
 from psycopg.errors import ConnectionFailure
+from pydantic import BaseModel, ConfigDict, computed_field
 
 # Load quickshell lock once at module level
 _quickshell_lock_path = Path(__file__).parent / "quickshell.lock.json"
@@ -31,8 +31,9 @@ def check_ambiguous(req: Requirement) -> None:
         )
 
 
-@dataclass(frozen=True)
-class NixpkgsRev:
+class NixpkgsRev(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     rev: str
     hash: str
     date: int
@@ -44,21 +45,28 @@ class NixpkgsRev:
         return hash(self.rev)
 
 
-@dataclass
-class Package:
+class Package(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     name: str
     version: Version
     nixpkgs_rev: NixpkgsRev
-    _input_name: str | None = None
+    input_name_override: str | None = None
 
+    @computed_field
     @property
     def input_name(self) -> str:
-        return self._input_name or f"n-{self.name}"
+        return self.input_name_override or f"n-{self.name}"
 
     def __gt__(self, other: "Package") -> bool:
         return self.version > other.version or (
             self.version == other.version and self.nixpkgs_rev > other.nixpkgs_rev
         )
+
+
+class RevPerDay(BaseModel):
+    date: str
+    count: int
 
 
 async def packages_from_string(packages: str) -> list[Package]:
@@ -185,7 +193,7 @@ def select_optimal_packages(
             if p.version == max_versions[req.name] and p.nixpkgs_rev in selected_rev_set
         ]
         best = max(matching, key=lambda p: p.nixpkgs_rev.date)
-        best._input_name = rev_to_input[best.nixpkgs_rev.rev]
+        best.input_name_override = rev_to_input[best.nixpkgs_rev.rev]
         result.append(best)
 
     return result
@@ -232,7 +240,7 @@ async def get_package(requirement: Requirement) -> Package | None:
     )
 
 
-async def get_revs_per_day() -> list[dict[str, Any]]:
+async def get_revs_per_day() -> list[RevPerDay]:
     """Get the count of revisions per day."""
     connection_info = os.getenv("WOOPER_DB")
     if not connection_info:
@@ -246,7 +254,7 @@ async def get_revs_per_day() -> list[dict[str, Any]]:
             )
             rows = await cursor.fetchall()
 
-    return [{"date": str(row[0]), "count": row[1]} for row in rows]
+    return [RevPerDay(date=str(row[0]), count=row[1]) for row in rows]
 
 
 def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:

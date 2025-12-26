@@ -23,7 +23,7 @@ def mock_package():
             hash="sha256-xxxyyyzzz",
             date=1700000000,
         ),
-        _input_name="n0",
+        input_name_override="n0",
     )
 
 

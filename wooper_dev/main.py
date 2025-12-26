@@ -8,6 +8,7 @@ from psycopg.errors import ConnectionFailure
 from pydantic import BaseModel, Field
 
 from .actual_logic import (
+    RevPerDay,
     get_flake_nix,
     get_flake_tarball,
     get_package,
@@ -38,13 +39,6 @@ class NixpkgsRevResponse(BaseModel):
         description="Nix store hash (SRI format)", examples=["sha256-xxx"]
     )
     date: int = Field(description="Unix timestamp of the commit", examples=[1700000000])
-
-
-class RevPerDay(BaseModel):
-    """Revision count for a specific day."""
-
-    date: str = Field(description="Date in YYYY-MM-DD format", examples=["2024-01-15"])
-    count: int = Field(description="Number of revisions indexed", examples=[42])
 
 
 PackagesPath = Annotated[

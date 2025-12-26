@@ -164,6 +164,18 @@ class TestSelectOptimalPackages:
         with pytest.raises(ValueError, match="Version not found"):
             select_optimal_packages(requirements, candidates)
 
+    def test_raises_on_duplicate_package(self):
+        rev = NixpkgsRev(rev="abc123", hash="sha256-xxx", date=1000)
+        candidates = {
+            "python3": [
+                Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev),
+            ]
+        }
+        requirements = [Requirement("python3"), Requirement("python3")]
+
+        with pytest.raises(ValueError, match="Duplicate package: python3"):
+            select_optimal_packages(requirements, candidates)
+
 
 class TestGetFlakeNix:
     def test_generates_valid_flake(self):

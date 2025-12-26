@@ -117,6 +117,11 @@ def select_optimal_packages(
     candidates: dict[str, list[Package]],
 ) -> list[Package]:
     """Select packages using minimum nixpkgs revisions while maximizing versions."""
+    names = [req.name for req in requirements]
+    duplicates = [name for name in names if names.count(name) > 1]
+    if duplicates:
+        raise ValueError(f"Duplicate package: {duplicates[0]}")
+
     max_versions: dict[str, Version] = {}
     for req in requirements:
         pkg_candidates = candidates.get(req.name, [])

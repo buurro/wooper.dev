@@ -1,10 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from importlib.metadata import PackageNotFoundError, version
+from typing import Annotated
+
+from fastapi import FastAPI, HTTPException, Path
 from fastapi.responses import PlainTextResponse, RedirectResponse, StreamingResponse
 from packaging.requirements import InvalidRequirement, Requirement
+from pydantic import BaseModel, Field
 from psycopg.errors import ConnectionFailure
 
 from .actual_logic import (
-    NixpkgsRev,
     get_flake_nix,
     get_flake_tarball,
     get_package,
@@ -12,7 +15,48 @@ from .actual_logic import (
     packages_from_string,
 )
 
-app = FastAPI()
+try:
+    __version__ = version("wooper-dev")
+except PackageNotFoundError:
+    __version__ = "dev"
+
+app = FastAPI(
+    title="Wooper",
+    description="Generate Nix flakes with specific package versions from nixpkgs history.",
+    version=__version__,
+)
+
+
+class NixpkgsRevResponse(BaseModel):
+    """A specific nixpkgs revision."""
+
+    rev: str = Field(description="Git commit hash", examples=["abc123def456"])
+    hash: str = Field(description="Nix store hash (SRI format)", examples=["sha256-xxx"])
+    date: int = Field(description="Unix timestamp of the commit", examples=[1700000000])
+
+
+class RevPerDay(BaseModel):
+    """Revision count for a specific day."""
+
+    date: str = Field(description="Date in YYYY-MM-DD format", examples=["2024-01-15"])
+    count: int = Field(description="Number of revisions indexed", examples=[42])
+
+
+PackagesPath = Annotated[
+    str,
+    Path(
+        description="Semicolon-separated list of packages with optional version specifiers",
+        examples=["python3;nodejs", "uv~=0.5.0;ruff>=0.8.0"],
+    ),
+]
+
+RequirementPath = Annotated[
+    str,
+    Path(
+        description="Package name with optional PEP 440 version specifier",
+        examples=["python3", "uv~=0.5.0", "ruff>=0.8.0"],
+    ),
+]
 
 MAX_PACKAGES = 50
 
@@ -25,8 +69,13 @@ def _parse_requirement(req_str: str) -> Requirement:
         raise HTTPException(status_code=400, detail=f"Invalid requirement: {e}")
 
 
-@app.get("/flake/{packages}")
-async def flake(packages: str):
+@app.get(
+    "/flake/{packages}",
+    summary="Get flake.nix content",
+    description="Returns the flake.nix file content for the requested packages.",
+    response_class=PlainTextResponse,
+)
+async def flake(packages: PackagesPath) -> PlainTextResponse:
     parts = packages.split(";")
     if len(parts) > MAX_PACKAGES:
         raise HTTPException(
@@ -43,8 +92,12 @@ async def flake(packages: str):
     return PlainTextResponse(get_flake_nix(packages_list))
 
 
-@app.get("/stats/revs-per-day")
-async def stats_revs_per_day():
+@app.get(
+    "/stats/revs-per-day",
+    summary="Get indexing statistics",
+    description="Returns the number of nixpkgs revisions indexed per day.",
+)
+async def stats_revs_per_day() -> list[RevPerDay]:
     try:
         stats = await get_revs_per_day()
     except ConnectionFailure:
@@ -53,8 +106,12 @@ async def stats_revs_per_day():
     return stats
 
 
-@app.get("/nixpkgs/{requirement}")
-async def nixpkgs(requirement: str) -> RedirectResponse:
+@app.get(
+    "/nixpkgs/{requirement}",
+    summary="Redirect to nixpkgs tarball",
+    description="Redirects to the GitHub tarball for the nixpkgs revision containing the requested package version.",
+)
+async def nixpkgs(requirement: RequirementPath) -> RedirectResponse:
     req = _parse_requirement(requirement)
     try:
         package = await get_package(req)
@@ -72,8 +129,12 @@ async def nixpkgs(requirement: str) -> RedirectResponse:
     )
 
 
-@app.get("/rev/{requirement}")
-async def rev(requirement: str) -> NixpkgsRev:
+@app.get(
+    "/rev/{requirement}",
+    summary="Get nixpkgs revision info",
+    description="Returns the nixpkgs revision details for a package version.",
+)
+async def rev(requirement: RequirementPath) -> NixpkgsRevResponse:
     req = _parse_requirement(requirement)
     try:
         package = await get_package(req)
@@ -85,11 +146,17 @@ async def rev(requirement: str) -> NixpkgsRev:
             status_code=404, detail="Package not found at specified version"
         )
 
-    return package.nixpkgs_rev
+    r = package.nixpkgs_rev
+    return NixpkgsRevResponse(rev=r.rev, hash=r.hash, date=r.date)
 
 
-@app.get("/{packages}")
-async def tarball(packages: str) -> StreamingResponse:
+@app.get(
+    "/{packages}",
+    summary="Get flake tarball",
+    description="Returns a gzipped tarball containing flake.nix and flake.lock for the requested packages. Use with `nix run`.",
+    response_class=StreamingResponse,
+)
+async def tarball(packages: PackagesPath) -> StreamingResponse:
     parts = packages.split(";")
     if len(parts) > MAX_PACKAGES:
         raise HTTPException(

@@ -248,8 +248,8 @@ def get_flake_nix(packages: Iterable[Package]) -> str:
 
     first_input = next(iter(seen_inputs.keys()))
 
-    inputs = "\n".join(
-        f'    "{name}".url = "github:nixos/nixpkgs?rev={pkg.nixpkgs_rev.rev}";'
+    inputs = ("\n" + " " * 12).join(
+        f'"{name}".url = "github:nixos/nixpkgs?rev={pkg.nixpkgs_rev.rev}";'
         for name, pkg in seen_inputs.items()
     )
 
@@ -257,21 +257,21 @@ def get_flake_nix(packages: Iterable[Package]) -> str:
     for pkg in packages:
         packages_by_input.setdefault(pkg.input_name, []).append(pkg.name)
 
-    packages_for = "\n".join(
-        f'            (with inputs."{name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}; [{" ".join(names)}])'
+    packages_for = ("\n" + " " * 20).join(
+        f'(with inputs."{name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}; [{" ".join(names)}])'
         for name, names in packages_by_input.items()
     )
 
-    individual_pkgs = "\n".join(
+    individual_pkgs = ("\n" + " " * 16).join(
         f'{pkg.name} = inputs."{pkg.input_name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}.{pkg.name};'
         for pkg in packages
-    ).replace("\n", "\n                ")
+    )
 
     return dedent(f"""\
         {{
           inputs = {{
             quickshell.url = "github:buurro/quickshell";
-        {inputs}
+            {inputs}
           }};
           outputs = {{
             self,
@@ -284,7 +284,7 @@ def get_flake_nix(packages: Iterable[Package]) -> str:
                 nixpkgs = inputs."{first_input}";
                 packagesFor = pkgs:
                   builtins.concatLists [
-        {packages_for}
+                    {packages_for}
                   ];
               }};
             }};

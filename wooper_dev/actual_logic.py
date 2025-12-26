@@ -269,8 +269,8 @@ def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:
     pkg_list = ("\n" + " " * 10).join(
         f"{pkg.input_name}.legacyPackages.${{s}}.{pkg.name}" for pkg in packages
     )
-    pkg_attrs = ("\n" + " " * 8).join(
-        f"{pkg.name} = {pkg.input_name}.legacyPackages.${{s}}.{pkg.name};"
+    pkg_attrs = ("\n" + " " * 6).join(
+        f"{pkg.name} = {pkg.input_name}.legacyPackages.${{system}}.{pkg.name};"
         for pkg in packages
     )
 
@@ -284,22 +284,19 @@ def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:
   }};
 
   outputs = {{ quickshell, {input_names}, ... }}: let
-    inherit (quickshell.lib) mkDevshell toPackages forAllSystems;
-    shells = toPackages {{
-      dev = mkDevshell {{
-        nixpkgs = {first};
-        comment = "{comment}";
-        packagesFor = pkgs: let s = pkgs.stdenv.hostPlatform.system; in [
+    shells = quickshell.lib.mkPackages {first} {{
+      dev = {{
+        packages = pkgs: let s = pkgs.stdenv.hostPlatform.system; in [
           {pkg_list}
         ];
+        comment = "{comment}";
       }};
     }};
   in {{
-    packages = forAllSystems {first} (pkgs: let s = pkgs.stdenv.hostPlatform.system; in
-      shells.${{s}} // {{
-        default = shells.${{s}}.dev;
-        {pkg_attrs}
-      }});
+    packages = builtins.mapAttrs (system: shellPkgs: shellPkgs // {{
+      default = shellPkgs.dev;
+      {pkg_attrs}
+    }}) shells;
   }};
 }}
 """

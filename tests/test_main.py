@@ -38,7 +38,7 @@ class TestFlakeEndpoint:
 
         assert response.status_code == 200
         assert "quickshell" in response.text
-        assert "mkDevshell" in response.text
+        assert "mkPackages" in response.text
         assert "python3" in response.text
 
     def test_rejects_too_many_packages(self):

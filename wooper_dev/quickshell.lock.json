@@ -1,8 +1,8 @@
 {
-  "lastModified": 1766759302,
-  "narHash": "sha256-IbgEmL1ccyX8ashdlkdBjpz/cvxLpOY420sermdZqJE=",
+  "lastModified": 1766784431,
+  "narHash": "sha256-grUbti4uS3gC0XjdSD/aUwVGn62o9tEvB1qVWrqNZls=",
   "owner": "buurro",
   "repo": "quickshell",
-  "rev": "7404be6349aa53480f88961aafac487915b7952d",
+  "rev": "6ec8460f92a101808b4f19a8cc51e67b319e927c",
   "type": "github"
 }

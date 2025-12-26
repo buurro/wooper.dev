@@ -189,7 +189,7 @@ class TestGetFlakeNix:
         flake_nix = get_flake_nix(packages)
 
         assert "quickshell" in flake_nix
-        assert "mkDevshell" in flake_nix
+        assert "mkPackages" in flake_nix
         assert "n0" in flake_nix
         assert "abc123def456" in flake_nix
         assert "python3" in flake_nix

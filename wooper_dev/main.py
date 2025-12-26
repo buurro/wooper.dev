@@ -4,8 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, FastAPI, HTTPException, Path
 from fastapi.responses import PlainTextResponse, RedirectResponse, StreamingResponse
 from packaging.requirements import InvalidRequirement, Requirement
-from pydantic import BaseModel, Field
 from psycopg.errors import ConnectionFailure
+from pydantic import BaseModel, Field
 
 from .actual_logic import (
     get_flake_nix,
@@ -34,7 +34,9 @@ class NixpkgsRevResponse(BaseModel):
     """A specific nixpkgs revision."""
 
     rev: str = Field(description="Git commit hash", examples=["abc123def456"])
-    hash: str = Field(description="Nix store hash (SRI format)", examples=["sha256-xxx"])
+    hash: str = Field(
+        description="Nix store hash (SRI format)", examples=["sha256-xxx"]
+    )
     date: int = Field(description="Unix timestamp of the commit", examples=[1700000000])
 
 
@@ -92,7 +94,7 @@ async def flake(packages: PackagesPath) -> PlainTextResponse:
     except ConnectionFailure:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    return PlainTextResponse(get_flake_nix(packages_list))
+    return PlainTextResponse(get_flake_nix(packages_list, packages))
 
 
 @api_router.get(
@@ -174,7 +176,7 @@ async def tarball(packages: PackagesPath) -> StreamingResponse:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     return StreamingResponse(
-        get_flake_tarball(packages_list),
+        get_flake_tarball(packages_list, packages),
         media_type="application/gzip",
         headers={"Content-Disposition": "attachment; filename=flake.tar.gz"},
     )

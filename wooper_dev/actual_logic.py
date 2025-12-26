@@ -26,7 +26,9 @@ AMBIGUOUS_PACKAGES: dict[str, str] = {
 def check_ambiguous(req: Requirement) -> None:
     """Raise if package name is ambiguous."""
     if req.name in AMBIGUOUS_PACKAGES:
-        raise ValueError(f"Ambiguous package `{req.name}`: {AMBIGUOUS_PACKAGES[req.name]}")
+        raise ValueError(
+            f"Ambiguous package `{req.name}`: {AMBIGUOUS_PACKAGES[req.name]}"
+        )
 
 
 @dataclass(frozen=True)
@@ -151,7 +153,11 @@ def select_optimal_packages(
 
     # Find revisions that have max version for each package
     optimal_revs: dict[str, set[NixpkgsRev]] = {
-        req.name: {p.nixpkgs_rev for p in candidates[req.name] if p.version == max_versions[req.name]}
+        req.name: {
+            p.nixpkgs_rev
+            for p in candidates[req.name]
+            if p.version == max_versions[req.name]
+        }
         for req in requirements
     }
 
@@ -174,7 +180,8 @@ def select_optimal_packages(
     result: list[Package] = []
     for req in requirements:
         matching = [
-            p for p in candidates[req.name]
+            p
+            for p in candidates[req.name]
             if p.version == max_versions[req.name] and p.nixpkgs_rev in selected_rev_set
         ]
         best = max(matching, key=lambda p: p.nixpkgs_rev.date)
@@ -200,7 +207,11 @@ async def get_package(requirement: Requirement) -> Package | None:
             )
             versions = await cursor.fetchall()
 
-            matching = [Version(v[0]) for v in versions if Version(v[0]) in requirement.specifier]
+            matching = [
+                Version(v[0])
+                for v in versions
+                if Version(v[0]) in requirement.specifier
+            ]
             if not matching:
                 return None
 
@@ -238,7 +249,7 @@ async def get_revs_per_day() -> list[dict[str, Any]]:
     return [{"date": str(row[0]), "count": row[1]} for row in rows]
 
 
-def get_flake_nix(packages: Iterable[Package]) -> str:
+def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:
     packages = list(packages)
 
     # Collect unique inputs
@@ -256,13 +267,14 @@ def get_flake_nix(packages: Iterable[Package]) -> str:
     )
     input_names = ", ".join(inputs)
     pkg_list = ("\n" + " " * 10).join(
-        f'{pkg.input_name}.legacyPackages.${{s}}.{pkg.name}'
-        for pkg in packages
+        f"{pkg.input_name}.legacyPackages.${{s}}.{pkg.name}" for pkg in packages
     )
     pkg_attrs = ("\n" + " " * 8).join(
-        f'{pkg.name} = {pkg.input_name}.legacyPackages.${{s}}.{pkg.name};'
+        f"{pkg.name} = {pkg.input_name}.legacyPackages.${{s}}.{pkg.name};"
         for pkg in packages
     )
+
+    comment = f"Regenerate: nix run 'https://wooper.dev/{spec}'" if spec else ""
 
     return f"""\
 {{
@@ -276,6 +288,7 @@ def get_flake_nix(packages: Iterable[Package]) -> str:
     shells = toPackages {{
       dev = mkDevshell {{
         nixpkgs = {first};
+        comment = "{comment}";
         packagesFor = pkgs: let s = pkgs.stdenv.hostPlatform.system; in [
           {pkg_list}
         ];
@@ -334,10 +347,10 @@ def get_flake_lock(packages: Iterable[Package]) -> str:
     return json.dumps(lock)
 
 
-def get_flake_tarball(packages: Iterable[Package]) -> io.BytesIO:
+def get_flake_tarball(packages: Iterable[Package], spec: str = "") -> io.BytesIO:
     packages = list(packages)
     with tempfile.TemporaryDirectory() as dir_path:
-        (Path(dir_path) / "flake.nix").write_text(get_flake_nix(packages))
+        (Path(dir_path) / "flake.nix").write_text(get_flake_nix(packages, spec))
         (Path(dir_path) / "flake.lock").write_text(get_flake_lock(packages))
 
         tar_bytes = io.BytesIO()

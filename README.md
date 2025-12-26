@@ -1,33 +1,24 @@
 # wooper.dev
 
-Use any version of any nixpkgs package without writing a flake.
+A web service that generates Nix flakes with specific package versions from nixpkgs history. Use any version of any nixpkgs package without writing a flake.
 
-## Usage
+## Prerequisites
+
+- [Nix](https://nixos.org/download/) with flakes enabled
+
+## Quick Start
 
 ```bash
-# Enter a shell with specific package versions
+# Enter a shell with specific packages
 nix shell "https://wooper.dev/python3;nodejs;ruff"
 
 # Run a package directly
 nix run "https://wooper.dev/uv~=0.5.0#uv" -- --version
 ```
 
-The first run takes a while as Nix downloads and evaluates the flake.
+The first run takes a while as Nix downloads and evaluates the flake. Subsequent runs use the cache.
 
-### Portable shell scripts
-
-Generate a standalone shell script that can be committed to your repo:
-
-```bash
-nix run "https://wooper.dev/uv~=0.5.0;ruff" > dev.sh
-chmod +x dev.sh
-```
-
-The script fetches packages directly from cache.nixos.org without re-evaluating the flake. Anyone with Nix can run it instantly.
-
-Works on aarch64-darwin, x86_64-darwin, aarch64-linux, and x86_64-linux.
-
-### Version specifiers
+## Version Specifiers
 
 Wooper uses [PEP 440](https://peps.python.org/pep-0440/) version specifiers:
 
@@ -38,7 +29,9 @@ Wooper uses [PEP 440](https://peps.python.org/pep-0440/) version specifiers:
 | `uv>=0.5.0` | Minimum version |
 | `uv~=0.5.0` | Compatible release (>=0.5.0, <0.6.0) |
 
-### Multiple packages
+**Note:** `>` and `<` must be URL-encoded (`%3E`, `%3C`) as they break Nix's URL parser.
+
+## Multiple Packages
 
 Separate packages with semicolons:
 
@@ -46,11 +39,28 @@ Separate packages with semicolons:
 nix shell "https://wooper.dev/python3~=3.12;uv~=0.5.0;ruff"
 ```
 
-Note: `>` and `<` must be URL-encoded (`%3E`, `%3C`) as they break Nix's URL parser.
+Wooper optimizes flake inputs by selecting the minimum number of nixpkgs revisions needed to satisfy all version requirements.
 
-### Use in a flake
+**Limits:**
+- Maximum 50 packages per request
+- Ambiguous packages like `python` are rejected—use `python2` or `python3`
 
-Use wooper.dev as a flake input to pin specific package versions:
+## Portable Shell Scripts
+
+Generate a standalone shell script that can be committed to your repo:
+
+```bash
+nix run "https://wooper.dev/uv~=0.5.0;ruff" > dev.sh
+chmod +x dev.sh
+```
+
+When run, the generated flake outputs a shell script to stdout (via [quickshell](https://github.com/buurro/quickshell)). This script fetches packages directly from cache.nixos.org without re-evaluating the flake—anyone with Nix can run it instantly.
+
+Works on aarch64-darwin, x86_64-darwin, aarch64-linux, and x86_64-linux.
+
+## Use as a Flake Input
+
+Pin specific package versions in your flake:
 
 ```nix
 {
@@ -75,19 +85,47 @@ Use wooper.dev as a flake input to pin specific package versions:
 
 ## API
 
-See [wooper.dev/docs](https://wooper.dev/docs) for all endpoints.
+Interactive documentation available at [wooper.dev/docs](https://wooper.dev/docs).
+
+### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /{packages}` | Flake tarball (flake.nix + flake.lock) for `nix shell`/`nix run` |
+| `GET /flake/{packages}` | Raw flake.nix content |
+
+### Example
+
+```bash
+# Get flake.nix content
+curl "https://wooper.dev/flake/python3~=3.12"
+```
 
 ## Development
 
+### Setup
+
 ```bash
+# Set up database connection
 export WOOPER_DB="postgresql://user:password@host/database"
 
-# Fill the packages database (use a recent date)
+# Fill the packages database (use a recent date to limit initial sync)
 uv run -m wooper_dev.updater --after 2025-01-01
 
 # Start dev server
 uv run uvicorn wooper_dev.main:app --reload
+```
 
-# Update quickshell dependency
+The updater scrapes [Hydra](https://hydra.nixos.org/) for successful nixpkgs builds and indexes all package versions for each revision.
+
+### Testing
+
+```bash
+uv run pytest
+```
+
+### Update quickshell dependency
+
+```bash
 uv run scripts/update_quickshell.py
 ```

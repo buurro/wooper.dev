@@ -139,7 +139,7 @@ class TestRevEndpoint:
             new_callable=AsyncMock,
             return_value=mock_package,
         ):
-            response = client.get("/rev/python3")
+            response = client.get("/api/rev/python3")
 
         assert response.status_code == 200
         data = response.json()
@@ -153,7 +153,7 @@ class TestRevEndpoint:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            response = client.get("/rev/nonexistent")
+            response = client.get("/api/rev/nonexistent")
 
         assert response.status_code == 404
 
@@ -168,7 +168,7 @@ class TestStatsEndpoint:
                 {"date": "2024-01-14", "count": 3},
             ],
         ):
-            response = client.get("/stats/revs-per-day")
+            response = client.get("/api/stats/revs-per-day")
 
         assert response.status_code == 200
         data = response.json()
@@ -184,7 +184,7 @@ class TestStatsEndpoint:
             new_callable=AsyncMock,
             side_effect=ConnectionFailure("Database unavailable"),
         ):
-            response = client.get("/stats/revs-per-day")
+            response = client.get("/api/stats/revs-per-day")
 
         assert response.status_code == 503
 
@@ -196,7 +196,7 @@ class TestInputValidation:
             new_callable=AsyncMock,
             return_value=mock_package,
         ):
-            response = client.get("/rev/python3>=3.10")
+            response = client.get("/api/rev/python3>=3.10")
 
         assert response.status_code == 200
 

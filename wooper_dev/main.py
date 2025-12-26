@@ -1,7 +1,7 @@
 from importlib.metadata import PackageNotFoundError, version
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Path
+from fastapi import APIRouter, FastAPI, HTTPException, Path
 from fastapi.responses import PlainTextResponse, RedirectResponse, StreamingResponse
 from packaging.requirements import InvalidRequirement, Requirement
 from pydantic import BaseModel, Field
@@ -25,6 +25,9 @@ app = FastAPI(
     description="Generate Nix flakes with specific package versions from nixpkgs history.",
     version=__version__,
 )
+
+nix_router = APIRouter(tags=["Nix"])
+api_router = APIRouter(prefix="/api", tags=["API"])
 
 
 class NixpkgsRevResponse(BaseModel):
@@ -50,7 +53,7 @@ PackagesPath = Annotated[
     ),
 ]
 
-RequirementPath = Annotated[
+PackagePath = Annotated[
     str,
     Path(
         description="Package name with optional PEP 440 version specifier",
@@ -69,7 +72,7 @@ def _parse_requirement(req_str: str) -> Requirement:
         raise HTTPException(status_code=400, detail=f"Invalid requirement: {e}")
 
 
-@app.get(
+@nix_router.get(
     "/flake/{packages}",
     summary="Get flake.nix content",
     description="Returns the flake.nix file content for the requested packages.",
@@ -92,7 +95,7 @@ async def flake(packages: PackagesPath) -> PlainTextResponse:
     return PlainTextResponse(get_flake_nix(packages_list))
 
 
-@app.get(
+@api_router.get(
     "/stats/revs-per-day",
     summary="Get indexing statistics",
     description="Returns the number of nixpkgs revisions indexed per day.",
@@ -106,51 +109,51 @@ async def stats_revs_per_day() -> list[RevPerDay]:
     return stats
 
 
-@app.get(
-    "/nixpkgs/{requirement}",
+@nix_router.get(
+    "/nixpkgs/{package}",
     summary="Redirect to nixpkgs tarball",
     description="Redirects to the GitHub tarball for the nixpkgs revision containing the requested package version.",
 )
-async def nixpkgs(requirement: RequirementPath) -> RedirectResponse:
-    req = _parse_requirement(requirement)
+async def nixpkgs(package: PackagePath) -> RedirectResponse:
+    req = _parse_requirement(package)
     try:
-        package = await get_package(req)
+        pkg = await get_package(req)
     except ConnectionFailure:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    if not package:
+    if not pkg:
         raise HTTPException(
             status_code=404, detail="Package not found at specified version"
         )
 
     return RedirectResponse(
-        url=f"https://github.com/NixOS/nixpkgs/archive/{package.nixpkgs_rev.rev}.tar.gz",
+        url=f"https://github.com/NixOS/nixpkgs/archive/{pkg.nixpkgs_rev.rev}.tar.gz",
         status_code=301,
     )
 
 
-@app.get(
-    "/rev/{requirement}",
+@api_router.get(
+    "/rev/{package}",
     summary="Get nixpkgs revision info",
     description="Returns the nixpkgs revision details for a package version.",
 )
-async def rev(requirement: RequirementPath) -> NixpkgsRevResponse:
-    req = _parse_requirement(requirement)
+async def rev(package: PackagePath) -> NixpkgsRevResponse:
+    req = _parse_requirement(package)
     try:
-        package = await get_package(req)
+        pkg = await get_package(req)
     except ConnectionFailure:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    if not package:
+    if not pkg:
         raise HTTPException(
             status_code=404, detail="Package not found at specified version"
         )
 
-    r = package.nixpkgs_rev
+    r = pkg.nixpkgs_rev
     return NixpkgsRevResponse(rev=r.rev, hash=r.hash, date=r.date)
 
 
-@app.get(
+@nix_router.get(
     "/{packages}",
     summary="Get flake tarball",
     description="Returns a gzipped tarball containing flake.nix and flake.lock for the requested packages. Use with `nix run`.",
@@ -175,3 +178,7 @@ async def tarball(packages: PackagesPath) -> StreamingResponse:
         media_type="application/gzip",
         headers={"Content-Disposition": "attachment; filename=flake.tar.gz"},
     )
+
+
+app.include_router(api_router)
+app.include_router(nix_router)

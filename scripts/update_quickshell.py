@@ -17,6 +17,7 @@ def main() -> None:
             "metadata",
             "github:buurro/quickshell",
             "--json",
+            "--refresh",
         ],
         capture_output=True,
         text=True,

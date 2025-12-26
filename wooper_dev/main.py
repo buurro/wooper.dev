@@ -118,13 +118,13 @@ async def nixpkgs(package: PackagePath) -> RedirectResponse:
     req = _parse_requirement(package)
     try:
         pkg = await get_package(req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except ConnectionFailure:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     if not pkg:
-        raise HTTPException(
-            status_code=404, detail="Package not found at specified version"
-        )
+        raise HTTPException(status_code=404, detail=f"Package not found: {req.name}")
 
     return RedirectResponse(
         url=f"https://github.com/NixOS/nixpkgs/archive/{pkg.nixpkgs_rev.rev}.tar.gz",
@@ -141,13 +141,13 @@ async def rev(package: PackagePath) -> NixpkgsRevResponse:
     req = _parse_requirement(package)
     try:
         pkg = await get_package(req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except ConnectionFailure:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     if not pkg:
-        raise HTTPException(
-            status_code=404, detail="Package not found at specified version"
-        )
+        raise HTTPException(status_code=404, detail=f"Package not found: {req.name}")
 
     r = pkg.nixpkgs_rev
     return NixpkgsRevResponse(rev=r.rev, hash=r.hash, date=r.date)

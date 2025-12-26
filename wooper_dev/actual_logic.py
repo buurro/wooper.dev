@@ -18,6 +18,17 @@ from psycopg.errors import ConnectionFailure
 _quickshell_lock_path = Path(__file__).parent / "quickshell.lock.json"
 QUICKSHELL_LOCK: dict[str, Any] = json.loads(_quickshell_lock_path.read_text())
 
+# Packages that require explicit naming (ambiguous or deprecated)
+AMBIGUOUS_PACKAGES: dict[str, str] = {
+    "python": "use `python2` or `python3`",
+}
+
+
+def check_ambiguous(req: Requirement) -> None:
+    """Raise if package name is ambiguous."""
+    if req.name in AMBIGUOUS_PACKAGES:
+        raise ValueError(f"Ambiguous package `{req.name}`: {AMBIGUOUS_PACKAGES[req.name]}")
+
 
 @dataclass(frozen=True)
 class NixpkgsRev:
@@ -50,8 +61,18 @@ class Package:
 
 
 async def packages_from_string(packages: str) -> list[Package]:
+    # Parse requirements and check for ambiguous names
     requirements = [Requirement(p) for p in packages.split(";")]
+    for req in requirements:
+        check_ambiguous(req)
+
     candidates = await get_all_candidates(requirements)
+
+    # Check for missing packages
+    missing = [req.name for req in requirements if not candidates.get(req.name)]
+    if missing:
+        raise ValueError(f"Package not found: {'; '.join(missing)}")
+
     return select_optimal_packages(requirements, candidates)
 
 
@@ -166,6 +187,8 @@ def select_optimal_packages(
 
 async def get_package(requirement: Requirement) -> Package | None:
     """Get the best package for a single requirement."""
+    check_ambiguous(requirement)
+
     connection_info = os.getenv("WOOPER_DB")
     if not connection_info:
         raise ConnectionFailure("WOOPER_DB environment variable is not set")

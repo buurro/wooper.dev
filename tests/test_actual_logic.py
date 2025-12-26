@@ -5,8 +5,10 @@ from packaging.requirements import Requirement
 from packaging.version import Version
 
 from wooper_dev.actual_logic import (
+    AMBIGUOUS_PACKAGES,
     NixpkgsRev,
     Package,
+    check_ambiguous,
     get_flake_lock,
     get_flake_nix,
     select_optimal_packages,
@@ -246,3 +248,37 @@ class TestGetFlakeLock:
         lock_data = json.loads(get_flake_lock(packages))
 
         assert len(lock_data["nodes"]) == 3  # root, quickshell, nixpkgs-0
+
+
+class TestCheckAmbiguous:
+    def test_ambiguous_package_raises(self):
+        """Ambiguous packages like python should raise an error."""
+        req = Requirement("python")
+
+        with pytest.raises(ValueError, match="Ambiguous package"):
+            check_ambiguous(req)
+
+    def test_ambiguous_package_with_specifier_raises(self):
+        """Ambiguous packages should raise even with version specifiers."""
+        req = Requirement("python>=3.0")
+
+        with pytest.raises(ValueError, match="Ambiguous package"):
+            check_ambiguous(req)
+
+    def test_ambiguous_error_message_has_guidance(self):
+        """Error message should tell user what to do."""
+        req = Requirement("python")
+
+        with pytest.raises(ValueError, match="python2.*python3"):
+            check_ambiguous(req)
+
+    def test_non_ambiguous_passes(self):
+        """Non-ambiguous packages should not raise."""
+        req = Requirement("python3>=3.11")
+        check_ambiguous(req)  # Should not raise
+
+    def test_python_is_ambiguous(self):
+        """Verify python is marked as ambiguous."""
+        assert "python" in AMBIGUOUS_PACKAGES
+        assert "python2" in AMBIGUOUS_PACKAGES["python"]
+        assert "python3" in AMBIGUOUS_PACKAGES["python"]

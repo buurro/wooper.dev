@@ -48,6 +48,31 @@ nix shell "https://wooper.dev/python3~=3.12;uv~=0.5.0;ruff"
 
 Note: `>` and `<` must be URL-encoded (`%3E`, `%3C`) as they break Nix's URL parser.
 
+### Use in a flake
+
+Use wooper.dev as a flake input to pin specific package versions:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    wooper.url = "https://wooper.dev/uv~=0.5.0;ruff";
+  };
+
+  outputs = { self, nixpkgs, wooper }: let
+    system = "aarch64-darwin";
+    pkgs = nixpkgs.legacyPackages.${system};
+  in {
+    devShells.${system}.default = pkgs.mkShell {
+      packages = [
+        wooper.packages.${system}.uv
+        wooper.packages.${system}.ruff
+      ];
+    };
+  };
+}
+```
+
 ## API
 
 See [wooper.dev/docs](https://wooper.dev/docs) for all endpoints.

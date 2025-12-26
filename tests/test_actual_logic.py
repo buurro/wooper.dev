@@ -52,10 +52,10 @@ class TestPackage:
             name="python3",
             version=Version("3.11.0"),
             nixpkgs_rev=rev,
-            _input_name="nixpkgs-0",
+            _input_name="n0",
         )
 
-        assert pkg.input_name == "nixpkgs-0"
+        assert pkg.input_name == "n0"
 
     def test_comparison_by_version(self):
         rev = NixpkgsRev(rev="abc123", hash="sha256-xxx", date=1000)
@@ -183,27 +183,27 @@ class TestGetFlakeNix:
     def test_generates_valid_flake(self):
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
         ]
 
         flake_nix = get_flake_nix(packages)
 
         assert "quickshell" in flake_nix
         assert "mkDevshell" in flake_nix
-        assert "nixpkgs-0" in flake_nix
+        assert "n0" in flake_nix
         assert "abc123def456" in flake_nix
         assert "python3" in flake_nix
 
     def test_deduplicates_inputs(self):
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
-            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="n0"),
         ]
 
         flake_nix = get_flake_nix(packages)
 
-        assert flake_nix.count('"nixpkgs-0".url') == 1
+        assert flake_nix.count("n0.url") == 1
         assert "python3" in flake_nix
         assert "nodejs" in flake_nix
 
@@ -211,14 +211,14 @@ class TestGetFlakeNix:
         rev1 = NixpkgsRev(rev="abc123", hash="sha256-xxx", date=1000)
         rev2 = NixpkgsRev(rev="def456", hash="sha256-yyy", date=2000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev1, _input_name="nixpkgs-0"),
-            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev2, _input_name="nixpkgs-1"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev1, _input_name="n0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev2, _input_name="n1"),
         ]
 
         flake_nix = get_flake_nix(packages)
 
-        assert "nixpkgs-0" in flake_nix
-        assert "nixpkgs-1" in flake_nix
+        assert "n0" in flake_nix
+        assert "n1" in flake_nix
 
 
 class TestGetFlakeLock:
@@ -227,27 +227,27 @@ class TestGetFlakeLock:
 
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
         ]
 
         lock_data = json.loads(get_flake_lock(packages))
 
         assert "quickshell" in lock_data["nodes"]
-        assert "nixpkgs-0" in lock_data["nodes"]
-        assert lock_data["nodes"]["nixpkgs-0"]["locked"]["rev"] == "abc123def456"
+        assert "n0" in lock_data["nodes"]
+        assert lock_data["nodes"]["n0"]["locked"]["rev"] == "abc123def456"
 
     def test_deduplicates_inputs(self):
         import json
 
         rev = NixpkgsRev(rev="abc123def456", hash="sha256-xxx", date=1000)
         packages = [
-            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
-            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="nixpkgs-0"),
+            Package(name="python3", version=Version("3.11.0"), nixpkgs_rev=rev, _input_name="n0"),
+            Package(name="nodejs", version=Version("20.0.0"), nixpkgs_rev=rev, _input_name="n0"),
         ]
 
         lock_data = json.loads(get_flake_lock(packages))
 
-        assert len(lock_data["nodes"]) == 3  # root, quickshell, nixpkgs-0
+        assert len(lock_data["nodes"]) == 3  # root, quickshell, n0
 
 
 class TestCheckAmbiguous:

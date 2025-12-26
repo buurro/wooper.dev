@@ -5,7 +5,6 @@ import tarfile
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from textwrap import dedent
 from typing import Any, Iterable
 
 import psycopg
@@ -169,7 +168,7 @@ def select_optimal_packages(
         selected_revs.append(best_rev)
         uncovered -= {n for n in uncovered if best_rev in optimal_revs[n]}
 
-    rev_to_input = {rev.rev: f"nixpkgs-{i}" for i, rev in enumerate(selected_revs)}
+    rev_to_input = {rev.rev: f"n{i}" for i, rev in enumerate(selected_revs)}
     selected_rev_set = set(selected_revs)
 
     result: list[Package] = []
@@ -241,63 +240,56 @@ async def get_revs_per_day() -> list[dict[str, Any]]:
 
 def get_flake_nix(packages: Iterable[Package]) -> str:
     packages = list(packages)
-    seen_inputs: dict[str, Package] = {}
+
+    # Collect unique inputs
+    inputs: dict[str, NixpkgsRev] = {}
     for pkg in packages:
-        if pkg.input_name not in seen_inputs:
-            seen_inputs[pkg.input_name] = pkg
+        if pkg.input_name not in inputs:
+            inputs[pkg.input_name] = pkg.nixpkgs_rev
 
-    first_input = next(iter(seen_inputs.keys()))
+    first = next(iter(inputs))
 
-    inputs = ("\n" + " " * 12).join(
-        f'"{name}".url = "github:nixos/nixpkgs?rev={pkg.nixpkgs_rev.rev}";'
-        for name, pkg in seen_inputs.items()
+    # Build components
+    input_urls = "\n    ".join(
+        f'{name}.url = "github:nixos/nixpkgs?rev={rev.rev}";'
+        for name, rev in inputs.items()
     )
-
-    packages_by_input: dict[str, list[str]] = {}
-    for pkg in packages:
-        packages_by_input.setdefault(pkg.input_name, []).append(pkg.name)
-
-    packages_for = ("\n" + " " * 20).join(
-        f'(with inputs."{name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}; [{" ".join(names)}])'
-        for name, names in packages_by_input.items()
+    input_names = ", ".join(inputs)
+    pkg_list = ("\n" + " " * 10).join(
+        f'{pkg.input_name}.legacyPackages.${{s}}.{pkg.name}'
+        for pkg in packages
     )
-
-    individual_pkgs = ("\n" + " " * 16).join(
-        f'{pkg.name} = inputs."{pkg.input_name}".legacyPackages.${{pkgs.stdenv.hostPlatform.system}}.{pkg.name};'
+    pkg_attrs = ("\n" + " " * 8).join(
+        f'{pkg.name} = {pkg.input_name}.legacyPackages.${{s}}.{pkg.name};'
         for pkg in packages
     )
 
-    return dedent(f"""\
-        {{
-          inputs = {{
-            quickshell.url = "github:buurro/quickshell";
-            {inputs}
-          }};
-          outputs = {{
-            self,
-            quickshell,
-            ...
-          }} @ inputs: let
-            inherit (quickshell.lib) mkDevshell toPackages forAllSystems;
-            shells = toPackages {{
-              dev = mkDevshell {{
-                nixpkgs = inputs."{first_input}";
-                packagesFor = pkgs:
-                  builtins.concatLists [
-                    {packages_for}
-                  ];
-              }};
-            }};
-          in {{
-            packages = forAllSystems inputs."{first_input}" (pkgs:
-              shells.${{pkgs.stdenv.hostPlatform.system}}
-              // {{
-                default = shells.${{pkgs.stdenv.hostPlatform.system}}.dev;
-                {individual_pkgs}
-              }});
-          }};
-        }}
-        """)
+    return f"""\
+{{
+  inputs = {{
+    quickshell.url = "github:buurro/quickshell";
+    {input_urls}
+  }};
+
+  outputs = {{ quickshell, {input_names}, ... }}: let
+    inherit (quickshell.lib) mkDevshell toPackages forAllSystems;
+    shells = toPackages {{
+      dev = mkDevshell {{
+        nixpkgs = {first};
+        packagesFor = pkgs: let s = pkgs.stdenv.hostPlatform.system; in [
+          {pkg_list}
+        ];
+      }};
+    }};
+  in {{
+    packages = forAllSystems {first} (pkgs: let s = pkgs.stdenv.hostPlatform.system; in
+      shells.${{s}} // {{
+        default = shells.${{s}}.dev;
+        {pkg_attrs}
+      }});
+  }};
+}}
+"""
 
 
 def get_flake_lock(packages: Iterable[Package]) -> str:

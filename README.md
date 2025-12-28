@@ -12,7 +12,10 @@ A web service that generates Nix flakes with specific package versions from nixp
 # Enter a shell with specific packages
 nix shell "https://wooper.dev/python3;nodejs;ruff"
 
-# Run a package directly
+# Or use nix run (enters shell via quickshell's portable script)
+nix run "https://wooper.dev/python3;nodejs;ruff"
+
+# Run a specific package directly
 nix run "https://wooper.dev/uv~=0.5.0#uv" -- --version
 ```
 
@@ -50,11 +53,12 @@ Wooper optimizes flake inputs by selecting the minimum number of nixpkgs revisio
 Generate a standalone shell script that can be committed to your repo:
 
 ```bash
-nix run "https://wooper.dev/uv~=0.5.0;ruff" > dev.sh
+nix build "https://wooper.dev/uv~=0.5.0;ruff"
+cat result/bin/dev > dev.sh
 chmod +x dev.sh
 ```
 
-When run, the generated flake outputs a shell script to stdout (via [quickshell](https://github.com/buurro/quickshell)). This script fetches packages directly from cache.nixos.org without re-evaluating the flake—anyone with Nix can run it instantly.
+The flake uses [quickshell](https://github.com/buurro/quickshell) to generate a portable script that fetches packages directly from cache.nixos.org without re-evaluating the flake—anyone with Nix can run it instantly.
 
 Works on aarch64-darwin, x86_64-darwin, aarch64-linux, and x86_64-linux.
 

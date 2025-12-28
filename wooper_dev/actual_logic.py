@@ -282,7 +282,7 @@ def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:
         for pkg in packages
     )
 
-    comment = f"Regenerate: nix run 'https://wooper.dev/{spec}'" if spec else ""
+    comment = f"Regenerate: nix build 'https://wooper.dev/{spec}' && cat result/bin/dev" if spec else ""
 
     return f"""\
 {{

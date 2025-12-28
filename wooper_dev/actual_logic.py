@@ -282,7 +282,7 @@ def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:
         for pkg in packages
     )
 
-    comment = f"Regenerate: nix build 'https://wooper.dev/{spec}' && cat result/bin/dev" if spec else ""
+    comment = f"Regenerate: nix build 'https://wooper.dev/{spec}' && cat result/bin/wooper" if spec else ""
 
     return f"""\
 {{
@@ -293,7 +293,7 @@ def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:
 
   outputs = {{ quickshell, {input_names}, ... }}: let
     shells = quickshell.lib.mkPackages {first} {{
-      dev = {{
+      wooper = {{
         packages = pkgs: let s = pkgs.stdenv.hostPlatform.system; in [
           {pkg_list}
         ];
@@ -302,7 +302,7 @@ def get_flake_nix(packages: Iterable[Package], spec: str = "") -> str:
     }};
   in {{
     packages = builtins.mapAttrs (system: shellPkgs: shellPkgs // {{
-      default = shellPkgs.dev;
+      default = shellPkgs.wooper;
       {pkg_attrs}
     }}) shells;
   }};

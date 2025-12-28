@@ -54,7 +54,7 @@ Generate a standalone shell script that can be committed to your repo:
 
 ```bash
 nix build "https://wooper.dev/uv~=0.5.0;ruff"
-cat result/bin/dev > dev.sh
+cat result/bin/wooper > dev.sh
 chmod +x dev.sh
 ```
 

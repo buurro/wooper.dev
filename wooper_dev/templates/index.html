@@ -161,20 +161,6 @@
             position: relative;
             overflow: hidden;
         }
-        .try-it-section::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 20% 80%, rgba(245,197,66,0.3) 0%, transparent 40%),
-                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(200,100,150,0.2) 0%, transparent 60%);
-            animation: bgPulse 8s ease-in-out infinite;
-        }
-        @keyframes bgPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
-        }
 
         /* Floating decorations */
         .floating-icon {

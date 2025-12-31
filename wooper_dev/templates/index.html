@@ -41,28 +41,24 @@
         body { font-family: 'DM Sans', system-ui, sans-serif; }
 
         .wave-divider {
-            background: #F5C542;
-            margin-top: -1px;
             line-height: 0;
             position: relative;
+            margin-top: -1px;
         }
         .wave-divider svg {
             display: block;
             width: 100%;
-            height: 65px;
-            margin-top: -5px;
+            height: 70px;
         }
         .wave-divider-bottom {
-            background: #DDA0C8;
-            margin-top: -1px;
             line-height: 0;
             position: relative;
+            margin-top: -1px;
         }
         .wave-divider-bottom svg {
             display: block;
             width: 100%;
-            height: 65px;
-            margin-top: -5px;
+            height: 70px;
         }
 
         /* Card icon decoration */
@@ -343,8 +339,11 @@
 
     <!-- Wave Divider -->
     <div class="wave-divider">
-        <svg viewBox="0 -10 1440 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#DDA0C8" d="M0,-10 L1440,-10 L1440,20 C1320,55 1200,40 1080,45 C960,50 840,30 720,35 C600,40 480,55 360,45 C240,35 120,50 0,40 Z"/>
+        <svg viewBox="0 0 1440 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Pink background (top) -->
+            <rect x="0" y="0" width="1440" height="70" fill="#DDA0C8"/>
+            <!-- Gold wave (bottom) -->
+            <path fill="#F5C542" d="M0,30 C120,45 240,30 360,40 C480,50 600,35 720,40 C840,30 960,50 1080,40 C1200,35 1320,50 1440,35 L1440,70 L0,70 Z"/>
         </svg>
     </div>
 
@@ -418,8 +417,11 @@ curl https://wooper.dev/flake/ruff</code></pre>
 
     <!-- Wave Divider Bottom -->
     <div class="wave-divider-bottom">
-        <svg viewBox="0 -10 1440 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#F5C542" d="M0,-10 L1440,-10 L1440,25 C1320,10 1200,40 1080,30 C960,20 840,45 720,35 C600,25 480,10 360,25 C240,40 120,15 0,30 Z"/>
+        <svg viewBox="0 0 1440 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Gold background (top) -->
+            <rect x="0" y="0" width="1440" height="70" fill="#F5C542"/>
+            <!-- Pink wave (bottom) -->
+            <path fill="#DDA0C8" d="M0,25 C120,10 240,40 360,30 C480,20 600,45 720,35 C840,25 960,10 1080,25 C1200,40 1320,15 1440,30 L1440,70 L0,70 Z"/>
         </svg>
     </div>
 

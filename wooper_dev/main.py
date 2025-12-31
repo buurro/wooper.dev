@@ -1,8 +1,11 @@
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path as FilePath
 from typing import Annotated
 
 from fastapi import APIRouter, FastAPI, HTTPException, Path
-from fastapi.responses import PlainTextResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, StreamingResponse
+
+TEMPLATES_DIR = FilePath(__file__).parent / "templates"
 from packaging.requirements import InvalidRequirement, Requirement
 from psycopg.errors import ConnectionFailure
 from pydantic import BaseModel, Field
@@ -66,6 +69,13 @@ def _parse_requirement(req_str: str) -> Requirement:
         return Requirement(req_str)
     except InvalidRequirement as e:
         raise HTTPException(status_code=400, detail=f"Invalid requirement: {e}")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index() -> HTMLResponse:
+    """Landing page for Wooper."""
+    html = (TEMPLATES_DIR / "index.html").read_text()
+    return HTMLResponse(content=html)
 
 
 @nix_router.get(

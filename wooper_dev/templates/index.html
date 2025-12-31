@@ -67,25 +67,29 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 80px;
-            height: 80px;
-            margin-bottom: 1rem;
+            width: 72px;
+            height: 72px;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, #F5C542 0%, #f0b429 100%);
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(245, 197, 66, 0.3);
         }
-        .icon-box::after {
-            content: '';
+        .step-number {
             position: absolute;
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
-            background: repeating-linear-gradient(
-                90deg,
-                #1a1a1a 0px,
-                #1a1a1a 8px,
-                transparent 8px,
-                transparent 12px
-            );
+            top: -8px;
+            right: -8px;
+            width: 28px;
+            height: 28px;
+            background: #1a1a1a;
+            color: #F5C542;
+            border-radius: 50%;
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         /* Prism overrides */
@@ -362,36 +366,54 @@ curl https://wooper.dev/flake/ruff</code></pre>
         <div class="max-w-6xl mx-auto">
             <h2 class="font-display text-3xl md:text-4xl font-bold text-center text-ink mb-16">How it works</h2>
             <div class="grid md:grid-cols-3 gap-8">
-                <!-- Card 1 -->
+                <!-- Card 1: Request -->
                 <div class="bg-rose-card rounded-3xl p-8 card-hover">
                     <div class="icon-box">
-                        <svg class="w-12 h-12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#F5C542" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round"/>
-                            <path d="M24 12V20M20 16H28" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
+                        <span class="step-number">1</span>
+                        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Package/box with version tag -->
+                            <path d="M4 8L16 2L28 8V24L16 30L4 24V8Z" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+                            <path d="M4 8L16 14L28 8" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round"/>
+                            <path d="M16 14V30" stroke="#1a1a1a" stroke-width="2.5"/>
+                            <rect x="18" y="4" width="10" height="6" rx="1.5" fill="#1a1a1a"/>
+                            <text x="23" y="9" font-family="monospace" font-size="5" fill="#F5C542" text-anchor="middle">1.0</text>
                         </svg>
                     </div>
                     <h3 class="font-display text-2xl font-bold text-ink mb-3">Request</h3>
                     <p class="text-ink/70 leading-relaxed">Add packages to the URL with version specifiers. Use PEP 440 syntax like <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">~=3.11</code> or <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">&gt;=0.8</code></p>
                 </div>
-                <!-- Card 2 -->
+                <!-- Card 2: Resolve -->
                 <div class="bg-rose-card rounded-3xl p-8 card-hover">
                     <div class="icon-box">
-                        <svg class="w-12 h-12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="20" cy="20" r="12" fill="#F5C542" stroke="#1a1a1a" stroke-width="2.5"/>
-                            <path d="M30 30L42 42" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
-                            <path d="M16 20H24M20 16V24" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
+                        <span class="step-number">2</span>
+                        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Git history timeline -->
+                            <circle cx="8" cy="6" r="3" fill="#1a1a1a"/>
+                            <circle cx="8" cy="16" r="3" fill="#1a1a1a"/>
+                            <circle cx="8" cy="26" r="3" stroke="#1a1a1a" stroke-width="2"/>
+                            <path d="M8 9V13M8 19V23" stroke="#1a1a1a" stroke-width="2"/>
+                            <path d="M11 6H20M11 16H24" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+                            <!-- Magnifying glass -->
+                            <circle cx="22" cy="22" r="5" stroke="#1a1a1a" stroke-width="2.5"/>
+                            <path d="M26 26L30 30" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
                         </svg>
                     </div>
                     <h3 class="font-display text-2xl font-bold text-ink mb-3">Resolve</h3>
                     <p class="text-ink/70 leading-relaxed">Wooper searches nixpkgs history to find the exact revision with your version. We optimize for minimal revisions.</p>
                 </div>
-                <!-- Card 3 -->
+                <!-- Card 3: Run -->
                 <div class="bg-rose-card rounded-3xl p-8 card-hover">
                     <div class="icon-box">
-                        <svg class="w-12 h-12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="8" y="12" width="32" height="28" rx="4" fill="#F5C542" stroke="#1a1a1a" stroke-width="2.5"/>
-                            <path d="M16 8V16M32 8V16" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
-                            <path d="M16 24L22 30L34 18" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <span class="step-number">3</span>
+                        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Terminal with play -->
+                            <rect x="2" y="4" width="28" height="24" rx="3" stroke="#1a1a1a" stroke-width="2.5"/>
+                            <path d="M2 10H30" stroke="#1a1a1a" stroke-width="2"/>
+                            <circle cx="6" cy="7" r="1.5" fill="#1a1a1a"/>
+                            <circle cx="10" cy="7" r="1.5" fill="#1a1a1a"/>
+                            <circle cx="14" cy="7" r="1.5" fill="#1a1a1a"/>
+                            <!-- Play triangle -->
+                            <path d="M12 16L22 21L12 26V16Z" fill="#1a1a1a"/>
                         </svg>
                     </div>
                     <h3 class="font-display text-2xl font-bold text-ink mb-3">Run</h3>

@@ -25,4 +25,4 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-wooper_dev = ["quickshell.lock.json"]
+wooper_dev = ["quickshell.lock.json", "templates/*.html"]

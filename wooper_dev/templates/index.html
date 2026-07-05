@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wooper - Pin nixpkgs versions easily</title>
+    <title>Wooper - Any version of any nixpkgs package</title>
+    <meta name="description" content="Wooper generates Nix flakes with specific package versions from nixpkgs history. Run any version of any nixpkgs package with a single URL — no flake.nix to write.">
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,9 +167,9 @@
             overflow: hidden;
         }
 
-        /* Floating decorations */
+        /* Floating decorations (scoped to their section) */
         .floating-icon {
-            position: fixed;
+            position: absolute;
             font-size: 2rem;
             opacity: 0.6;
             animation: float 6s ease-in-out infinite;
@@ -273,24 +274,9 @@
             transform: translateY(0);
         }
 
-        /* Terminal prompt styling */
-        .terminal-line {
-            position: relative;
-        }
-        .terminal-line::before {
-            content: '$ ';
-            color: #888;
-        }
-
-        /* Shimmer loading effect */
-        .shimmer {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        /* Version specifier table */
+        .spec-table code {
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
     </style>
 </head>
@@ -299,8 +285,9 @@
     <nav class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-gray-100">
         <a href="/" class="font-display font-bold text-xl tracking-tight">Wooper</a>
         <div class="flex items-center gap-8">
-            <a href="#features" class="text-sm font-medium text-gray-600 hover:text-ink transition-colors">Features</a>
-            <a href="#how-it-works" class="text-sm font-medium text-gray-600 hover:text-ink transition-colors">How it works</a>
+            <a href="#how-it-works" class="hidden sm:inline text-sm font-medium text-gray-600 hover:text-ink transition-colors">How it works</a>
+            <a href="#versions" class="hidden sm:inline text-sm font-medium text-gray-600 hover:text-ink transition-colors">Versions</a>
+            <a href="#recipes" class="hidden md:inline text-sm font-medium text-gray-600 hover:text-ink transition-colors">Recipes</a>
             <a href="#try-it" class="text-sm font-medium text-gray-600 hover:text-ink transition-colors">Try it</a>
             <a href="/docs" class="text-sm font-medium text-gray-600 hover:text-ink transition-colors">API</a>
             <a href="https://github.com/buurro/wooper.dev" class="border-2 border-ink rounded-full px-4 py-1.5 text-sm font-semibold hover:bg-ink hover:text-white transition-all">GitHub</a>
@@ -315,8 +302,11 @@
                     <span class="block text-4xl md:text-5xl text-white/90 font-normal mb-1">nix</span>
                     <span class="block text-7xl md:text-[8rem] text-white">wooper</span>
                 </h1>
-                <p class="font-display text-xl md:text-2xl font-bold text-ink mt-8 mb-3">Pin nixpkgs versions....easily</p>
-                <p class="text-ink/70 text-lg mb-10 max-w-md">Specific package versions from nixpkgs history with a simple URL.</p>
+                <p class="font-display text-xl md:text-2xl font-bold text-ink mt-8 mb-3">Any version of any nixpkgs package</p>
+                <p class="text-ink/70 text-lg mb-8 max-w-md mx-auto md:mx-0">Put a package and a version in a URL. Wooper finds the nixpkgs revision that has it and serves a ready-to-run flake &mdash; no flake.nix to write, nothing to install.</p>
+                <div class="bg-ink/90 rounded-xl px-5 py-4 mb-8 max-w-md mx-auto md:mx-0 text-left overflow-x-auto">
+                    <code class="text-green-400 text-sm font-mono whitespace-nowrap"><span class="text-gray-500 select-none">$ </span>nix run "https://wooper.dev/uv~=0.5.0"</code>
+                </div>
                 <a href="#try-it" class="btn-primary inline-block bg-gold-main text-ink font-semibold px-8 py-3.5 rounded-lg shadow-lg hover:shadow-xl hover:bg-gold-light">
                     Try it now
                 </a>
@@ -347,16 +337,20 @@
                         <div class="code-window-dot bg-yellow-400"></div>
                         <div class="code-window-dot bg-green-400"></div>
                     </div>
-                    <pre class="!bg-[#1a1a1a] !rounded-none p-6 text-sm md:text-base"><code class="language-bash">nix run https://wooper.dev/python3~=3.11
+                    <pre class="!bg-[#1a1a1a] !rounded-none p-6 text-sm md:text-base"><code class="language-bash"># ephemeral shell with pinned tools
+nix shell "https://wooper.dev/python3~=3.12;nodejs;ruff"
 
-nix shell https://wooper.dev/nodejs;uv
+# run one version of one tool
+nix run "https://wooper.dev/uv==0.5.0#uv" -- --version
 
-curl https://wooper.dev/flake/ruff</code></pre>
+# see the flake Wooper generates
+curl "https://wooper.dev/flake/ruff"</code></pre>
                 </div>
             </div>
             <div class="flex-1">
-                <h2 class="font-display text-3xl md:text-5xl font-bold text-ink leading-tight mb-6">The future of<br>Nix package pinning</h2>
-                <p class="text-ink/80 text-lg leading-relaxed">Need a specific version of Python? Node.js from last year? A particular ruff release? Wooper finds the right nixpkgs revision and generates a flake for you instantly.</p>
+                <h2 class="font-display text-3xl md:text-5xl font-bold text-ink leading-tight mb-6">Time-travel<br>through nixpkgs</h2>
+                <p class="text-ink/80 text-lg leading-relaxed mb-4">Nixpkgs only ships one version of each package at a time &mdash; the version you need is usually in some past revision, and finding it by hand means digging through commit history.</p>
+                <p class="text-ink/80 text-lg leading-relaxed">Wooper keeps an index of nixpkgs revisions and every package version they contain, built from successful <a href="https://hydra.nixos.org/" class="underline decoration-2 underline-offset-2 hover:text-ink">Hydra</a> builds. Ask for a version, get a flake that pins it &mdash; with binaries already in the official cache.</p>
             </div>
         </div>
     </section>
@@ -380,7 +374,7 @@ curl https://wooper.dev/flake/ruff</code></pre>
                         </svg>
                     </div>
                     <h3 class="font-display text-2xl font-bold text-ink mb-3">Request</h3>
-                    <p class="text-ink/70 leading-relaxed">Add packages to the URL with version specifiers. Use PEP 440 syntax like <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">~=3.11</code> or <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">&gt;=0.8</code></p>
+                    <p class="text-ink/70 leading-relaxed">Put packages in the URL with <a href="https://peps.python.org/pep-0440/" class="underline decoration-2 underline-offset-2 hover:text-ink">PEP 440</a> version specifiers like <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">~=3.11</code>, separated by semicolons &mdash; up to 50 per request.</p>
                 </div>
                 <!-- Card 2: Resolve -->
                 <div class="bg-rose-card rounded-3xl p-8 card-hover">
@@ -399,7 +393,7 @@ curl https://wooper.dev/flake/ruff</code></pre>
                         </svg>
                     </div>
                     <h3 class="font-display text-2xl font-bold text-ink mb-3">Resolve</h3>
-                    <p class="text-ink/70 leading-relaxed">Wooper searches nixpkgs history to find the exact revision with your version. We optimize for minimal revisions.</p>
+                    <p class="text-ink/70 leading-relaxed">Wooper picks the newest matching version of each package, then selects the <em>minimum</em> set of nixpkgs revisions that covers them all &mdash; fewer inputs, faster evaluation.</p>
                 </div>
                 <!-- Card 3: Run -->
                 <div class="bg-rose-card rounded-3xl p-8 card-hover">
@@ -417,7 +411,108 @@ curl https://wooper.dev/flake/ruff</code></pre>
                         </svg>
                     </div>
                     <h3 class="font-display text-2xl font-bold text-ink mb-3">Run</h3>
-                    <p class="text-ink/70 leading-relaxed">Get a ready-to-use flake tarball. Works with <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">nix run</code>, <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">nix shell</code>, or <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">nix develop</code></p>
+                    <p class="text-ink/70 leading-relaxed">You get a flake tarball with a lockfile included. Works with <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">nix run</code>, <code class="bg-rose-cardDark px-1.5 py-0.5 rounded font-mono text-sm">nix shell</code>, or as a flake input &mdash; on Linux and macOS, x86_64 and aarch64.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Version Specifiers Section -->
+    <section id="versions" class="bg-white px-6 py-20 md:py-28">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="font-display text-3xl md:text-4xl font-bold text-center text-ink mb-4">Version specifiers</h2>
+            <p class="text-center text-ink/60 text-lg mb-12 max-w-2xl mx-auto">The same <a href="https://peps.python.org/pep-0440/" class="underline decoration-2 underline-offset-2 decoration-gold-main hover:text-ink">PEP 440</a> syntax you know from Python requirements, for every package in nixpkgs.</p>
+            <div class="spec-table overflow-x-auto rounded-2xl border-2 border-gray-100 shadow-sm">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-50 text-sm text-ink/60 uppercase tracking-wider">
+                            <th class="px-6 py-4 font-semibold">Specifier</th>
+                            <th class="px-6 py-4 font-semibold">Meaning</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr>
+                            <td class="px-6 py-4"><code class="bg-rose-card px-2 py-1 rounded text-sm">uv</code></td>
+                            <td class="px-6 py-4 text-ink/70">Latest indexed version</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4"><code class="bg-rose-card px-2 py-1 rounded text-sm">uv==0.5.0</code></td>
+                            <td class="px-6 py-4 text-ink/70">Exact version</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4"><code class="bg-rose-card px-2 py-1 rounded text-sm">uv&gt;=0.5.0</code></td>
+                            <td class="px-6 py-4 text-ink/70">Minimum version</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4"><code class="bg-rose-card px-2 py-1 rounded text-sm">uv~=0.5.0</code></td>
+                            <td class="px-6 py-4 text-ink/70">Compatible release (&gt;=0.5.0, &lt;0.6.0)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4"><code class="bg-rose-card px-2 py-1 rounded text-sm">python3~=3.12;uv;ruff</code></td>
+                            <td class="px-6 py-4 text-ink/70">Multiple packages, separated by semicolons</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-8 grid md:grid-cols-2 gap-4 text-sm">
+                <div class="bg-gold-main/15 border-2 border-gold-main/40 rounded-xl px-5 py-4 text-ink/70">
+                    <span class="font-semibold text-ink">Quote the URL.</span> Semicolons and <code class="bg-white px-1 rounded">~</code> are shell metacharacters, so wrap the URL in quotes. In <code class="bg-white px-1 rounded">nix</code> commands, <code class="bg-white px-1 rounded">&gt;</code> and <code class="bg-white px-1 rounded">&lt;</code> must be URL-encoded as <code class="bg-white px-1 rounded">%3E</code> and <code class="bg-white px-1 rounded">%3C</code>.
+                </div>
+                <div class="bg-rose-card/40 border-2 border-rose-cardDark/40 rounded-xl px-5 py-4 text-ink/70">
+                    <span class="font-semibold text-ink">Be specific.</span> Ambiguous names like <code class="bg-white px-1 rounded">python</code> are rejected &mdash; ask for <code class="bg-white px-1 rounded">python2</code> or <code class="bg-white px-1 rounded">python3</code> instead.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recipes Section -->
+    <section id="recipes" class="bg-white px-6 pb-20 md:pb-28">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="font-display text-3xl md:text-4xl font-bold text-center text-ink mb-4">Beyond the one-liner</h2>
+            <p class="text-center text-ink/60 text-lg mb-12 max-w-2xl mx-auto">Wooper URLs are real flakes, so anything that takes a flake takes a Wooper URL.</p>
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <!-- Portable script -->
+                <div>
+                    <h3 class="font-display text-xl font-bold text-ink mb-2">Portable dev-shell script</h3>
+                    <p class="text-ink/60 mb-4 leading-relaxed">Build once and commit the resulting script to your repo. It fetches packages straight from cache.nixos.org without re-evaluating the flake &mdash; anyone with Nix can run it instantly.</p>
+                    <div class="code-window">
+                        <div class="code-window-header items-center">
+                            <div class="code-window-dot bg-[#ff5f57]"></div>
+                            <div class="code-window-dot bg-[#febc2e]"></div>
+                            <div class="code-window-dot bg-[#28c840]"></div>
+                            <span class="ml-4 text-gray-500 text-sm font-mono">terminal</span>
+                        </div>
+                        <pre class="!bg-[#1a1a1a] !rounded-none p-6"><code class="language-bash">nix build "https://wooper.dev/uv~=0.5.0;ruff"
+cat result/bin/wooper > dev.sh
+chmod +x dev.sh
+./dev.sh   # shell with uv 0.5.x and ruff</code></pre>
+                    </div>
+                </div>
+                <!-- Flake input -->
+                <div>
+                    <h3 class="font-display text-xl font-bold text-ink mb-2">Pin versions in your own flake</h3>
+                    <p class="text-ink/60 mb-4 leading-relaxed">Use a Wooper URL as a flake input and pull pinned versions into your dev shell, next to your regular nixpkgs.</p>
+                    <div class="code-window">
+                        <div class="code-window-header items-center">
+                            <div class="code-window-dot bg-[#ff5f57]"></div>
+                            <div class="code-window-dot bg-[#febc2e]"></div>
+                            <div class="code-window-dot bg-[#28c840]"></div>
+                            <span class="ml-4 text-gray-500 text-sm font-mono">flake.nix</span>
+                        </div>
+                        <pre class="!bg-[#1a1a1a] !rounded-none p-6"><code class="language-nix">{
+  inputs.wooper.url = "https://wooper.dev/uv~=0.5.0;ruff";
+
+  outputs = { nixpkgs, wooper, ... }: {
+    devShells.aarch64-darwin.default =
+      nixpkgs.legacyPackages.aarch64-darwin.mkShell {
+        packages = with wooper.packages.aarch64-darwin; [
+          uv
+          ruff
+        ];
+      };
+  };
+}</code></pre>
+                    </div>
                 </div>
             </div>
         </div>
@@ -426,8 +521,8 @@ curl https://wooper.dev/flake/ruff</code></pre>
     <!-- Wave Divider Bottom -->
     <div class="wave-divider-bottom">
         <svg viewBox="0 0 1440 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Gold background (top) -->
-            <rect x="0" y="0" width="1440" height="70" fill="#F5C542"/>
+            <!-- White background (top) -->
+            <rect x="0" y="0" width="1440" height="70" fill="#ffffff"/>
             <!-- Pink wave (bottom) -->
             <path fill="#DDA0C8" d="M0,25 C120,10 240,40 360,30 C480,20 600,45 720,35 C840,25 960,10 1080,25 C1200,40 1320,15 1440,30 L1440,70 L0,70 Z"/>
         </svg>
@@ -446,7 +541,7 @@ curl https://wooper.dev/flake/ruff</code></pre>
         <div class="max-w-4xl mx-auto relative z-10">
             <div class="text-center mb-12">
                 <h2 class="font-display text-4xl md:text-5xl font-bold text-white mb-4">Try it out</h2>
-                <p class="text-white/70 text-lg max-w-lg mx-auto">Enter a package name with an optional version specifier and watch the magic happen</p>
+                <p class="text-white/70 text-lg max-w-lg mx-auto">Look up a package to see which nixpkgs revision Wooper resolves it to, the exact flake it generates, and the commands to use it.</p>
             </div>
 
             <div class="glow-card p-8 md:p-10 shadow-2xl">
@@ -472,7 +567,7 @@ curl https://wooper.dev/flake/ruff</code></pre>
                             Look up
                         </button>
                     </div>
-                    <p class="text-sm text-ink/50">Supports PEP 440 version specifiers: <code class="bg-gray-100 px-1.5 py-0.5 rounded">~=</code> <code class="bg-gray-100 px-1.5 py-0.5 rounded">&gt;=</code> <code class="bg-gray-100 px-1.5 py-0.5 rounded">==</code></p>
+                    <p class="text-sm text-ink/50">Supports PEP 440 version specifiers: <code class="bg-gray-100 px-1.5 py-0.5 rounded">~=</code> <code class="bg-gray-100 px-1.5 py-0.5 rounded">&gt;=</code> <code class="bg-gray-100 px-1.5 py-0.5 rounded">==</code> &mdash; separate multiple packages with <code class="bg-gray-100 px-1.5 py-0.5 rounded">;</code></p>
                 </div>
 
                 <!-- Results -->
@@ -487,7 +582,7 @@ curl https://wooper.dev/flake/ruff</code></pre>
                         <div class="bg-gradient-to-br from-rose-card/60 to-rose-card/30 rounded-2xl p-6 border border-rose-cardDark/30">
                             <div class="flex items-center gap-2 mb-4">
                                 <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                <h3 class="font-display font-bold text-ink">Found Nixpkgs Revision</h3>
+                                <h3 id="rev-heading" class="font-display font-bold text-ink">Found Nixpkgs Revision</h3>
                             </div>
                             <div class="grid md:grid-cols-3 gap-4">
                                 <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white">
@@ -615,7 +710,8 @@ curl https://wooper.dev/flake/ruff</code></pre>
 
             try {
                 // Fetch revision info for first package (for display)
-                const firstPkg = pkg.split(';')[0];
+                const packages = pkg.split(';');
+                const firstPkg = packages[0];
                 const revResponse = await fetch(`/api/rev/${encodeURIComponent(firstPkg)}`);
 
                 if (!revResponse.ok) {
@@ -627,16 +723,25 @@ curl https://wooper.dev/flake/ruff</code></pre>
 
                 // Fetch flake.nix content
                 const flakeResponse = await fetch(`/flake/${encodeURIComponent(pkg)}`);
-                const flakeContent = flakeResponse.ok ? await flakeResponse.text() : 'Failed to load flake.nix';
+                if (!flakeResponse.ok) {
+                    let detail = 'Failed to generate flake';
+                    try { detail = (await flakeResponse.json()).detail || detail; } catch {}
+                    throw new Error(detail);
+                }
+                const flakeContent = await flakeResponse.text();
 
                 // Update UI
+                document.getElementById('rev-heading').textContent = packages.length > 1
+                    ? `Found Nixpkgs Revision (for ${firstPkg})`
+                    : 'Found Nixpkgs Revision';
                 document.getElementById('result-rev').textContent = revData.rev;
                 document.getElementById('result-hash').textContent = revData.hash;
                 document.getElementById('result-date').textContent = new Date(revData.date * 1000).toLocaleDateString();
 
+                // Quote the URL: ; ~ < > are shell metacharacters
                 const encodedPkg = encodeURIComponent(pkg);
-                document.getElementById('cmd-run').textContent = `nix run https://wooper.dev/${encodedPkg}`;
-                document.getElementById('cmd-shell').textContent = `nix shell https://wooper.dev/${encodedPkg}`;
+                document.getElementById('cmd-run').textContent = `nix run "https://wooper.dev/${encodedPkg}"`;
+                document.getElementById('cmd-shell').textContent = `nix shell "https://wooper.dev/${encodedPkg}"`;
 
                 const flakeEl = document.getElementById('flake-content');
                 flakeEl.textContent = flakeContent;
